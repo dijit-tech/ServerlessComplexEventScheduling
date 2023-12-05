@@ -3,7 +3,13 @@ Streamlining Operations with AWS Systems Manager Calendar and EventBridge Rules
 
 ## Introduction
 
-Managing schedules for IT operations during holidays can be challenging. AWS Systems Manager Calendar and AWS EventBridge Rules offer a solution to automate and streamline operations based on a holiday calendar. This guide explores the integration of these services for efficient holiday scheduling.
+AWS Eventbridge provides a serverless way of scheduling jobs within the cloud. There are options based on schedule and on event basis. Sometimes these jobs need to be modified based on calendar events. For example, 
+1. Process payroll every Friday, except if Friday is a holiday, in which case schedule it on Thursday.
+2. Process files from an external vendor every Monday morning. If there is a long weekend, then files should be processed only the following working day.
+
+There is no direct way to use EventBridge to utilize a calendar for these type of scheduling.
+
+Another service called AWS Systems Manager Calendar offers a familiar calendar interface to schedule events that an be used to trigger eventbride. This guide explores the integration of these services for efficient holiday scheduling.
 
 ## Understanding the Components
 
