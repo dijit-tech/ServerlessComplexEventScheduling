@@ -54,6 +54,7 @@ The solution described in this blog post includes the following steps:
 
 - 2. **Create an automation document**: [Systems Manager Automation] (https://docs.aws.amazon.com/systems-manager-automation-runbooks/latest/userguide/automation-ref-sys.html) documents or runbooks help define a series of steps that can be done on your infrastructure and supports a wide range of AWS infrastructure APIs. Automations also support workflows using the new Visual design tool and can be used for manual steps such as an approval before the change event can start.
 
+```
     {
     "description": "Disables the specified Amazon EventBridge rule",
     "schemaVersion": "0.3",
@@ -87,6 +88,7 @@ The solution described in this blog post includes the following steps:
             }
         ]
     }
+```
 
 - **Input Holiday Dates**: Add specific holiday dates including specific times you do not want the rules to be executed.
 
