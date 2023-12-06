@@ -52,7 +52,12 @@ The solution described in this blog post includes the following steps:
 
 - 1. **Create a Holiday Calendar**: Define your holiday calendar in Systems Manager. [Guide to create calendars](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-calendar.html).The Calendar is either DEFAULT_OPEN or DEFAULT_CLOSED. For holiday calendar, we will keep the calendar DEFAULT_OPEN. A Calendar has events with a specific start and end times. These events are used to trigger EventBridge - at the start of the event, transitioning from Open to Closed and at the end of the event, transitioning from Closed to Open.
 
-- 2. **Create an automation document**: [Systems Manager Automation] (https://docs.aws.amazon.com/systems-manager-automation-runbooks/latest/userguide/automation-ref-sys.html) documents or runbooks help define a series of steps that can be done on your infrastructure and supports a wide range of AWS infrastructure APIs. Automations also support workflows using the new Visual design tool and can be used for manual steps such as an approval before the change event can start.
+- 2. **Create an automation document**: [Systems Manager Automation](https://docs.aws.amazon.com/systems-manager-automation-runbooks/latest/userguide/automation-ref-sys.html) documents or runbooks help define a series of steps that can be done on your infrastructure and supports a wide range of AWS infrastructure APIs. Automations also support workflows using the new Visual design tool and can be used for manual steps such as an approval before the change event can start.
+
+You will find "Automations" under "Change Management" section. 
+* Click on "Create Runbook"
+* Explore the new visual design interface. You can get more details on different elements of the runbook [here](https://docs.aws.amazon.com/systems-manager/latest/userguide/automation-documents.html)
+* For our runbook, click on the "{} Code" button and paste the code below:
 
 ```
     {
@@ -88,6 +93,51 @@ The solution described in this blog post includes the following steps:
             }
         ]
     }
+```
+* We will use the DisableRule API usinf the action "aws:executeApi". This docment needs 3 input parameters
+
+| Parameter      | Type         | Description                           | Default       |
+| ---------------| -------------|---------------------------------------|---------------|
+| EventBusName   | String       |The arn of the event bus               | default       |
+| RuleName       | String              | Name of the rule to disable    | |
+| assumeRole     | AWS::IAM::Role::Arn | Arn of the IAM role to use     | |
+
+* Lets name this runboook "Disable Events" 
+* Create a similar runbook to enable events using the code below 
+```
+{
+  "description": "Disables the specified Amazon EventBridge rule",
+  "schemaVersion": "0.3",
+  "parameters": {
+    "EventBusName": {
+      "type": "String",
+      "default": "default",
+      "description": "The event bus associated with the rule"
+    },
+    "RuleName": {
+      "type": "String",
+      "description": "The name of the rule to disable"
+    },
+    "assumeRole": {
+      "type": "AWS::IAM::Role::Arn",
+      "description": "RoleToExecuteThisWith"
+    }
+  },
+  "assumeRole": "{{ assumeRole }}",
+  "mainSteps": [
+    {
+      "name": "EnableRule",
+      "action": "aws:executeAwsApi",
+      "isEnd": true,
+      "inputs": {
+        "Service": "events",
+        "Api": "EnableRule",
+        "Name": "{{ RuleName }}",
+        "EventBusName": "{{ EventBusName }}"
+      }
+    }
+  ]
+}
 ```
 
 - **Input Holiday Dates**: Add specific holiday dates including specific times you do not want the rules to be executed.
