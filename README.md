@@ -31,10 +31,10 @@ EventBridge facilitates event-driven architectures and triggers AWS services in 
 
 The solution described in this blog post includes the following steps:
 
-1. Set Up AWS Systems Manager Calendar
-2. Create a Holiday automation documents
-3. Create an EventBridge Rules
-4. Testing and Validation
+1. [Set Up AWS Systems Manager Calendar](https://github.com/dijit-tech/ServerlessComplexEventScheduling/blob/main/README.md#step-1-set-up-aws-systems-manager-calendar)
+2. [Create a Holiday automation documents](https://github.com/dijit-tech/ServerlessComplexEventScheduling/blob/main/README.md#step-2-create-a-holiday-automation-documents)
+3. [Create an EventBridge Rules](https://github.com/dijit-tech/ServerlessComplexEventScheduling/blob/main/README.md#step-2-create-a-holiday-automation-documents)
+4. [Testing and Validation](https://github.com/dijit-tech/ServerlessComplexEventScheduling/blob/main/README.md#step-2-create-a-holiday-automation-documents)
 
 
 ### Step 1: Set Up AWS Systems Manager Calendar
