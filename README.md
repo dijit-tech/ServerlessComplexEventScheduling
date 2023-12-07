@@ -36,21 +36,25 @@ Systems Manager Change Calendar lets you set up date and time ranges (referred t
 **Open by default (DEFAULT_OPEN)**: Actions that are tracking Change Calendar can run by default but are blocked from running during associated events. During events, the state of a DEFAULT_OPEN calendar is CLOSED.
 **Closed by default (DEFAULT_CLOSE)**: Actions that are tracking Change Calendar do not run by default but can run during events associated with the calendar entry. During events, the state of a DEFAULT_CLOSED calendar is OPEN.
 
-Let’s use the Thanksgiving example. On ThanksGiving Day, you don’t want your job which usually runs every day to run. In other words, there is only one day when the job must be blocked.
+Let’s use the Thanksgiving example. On ThanksGiving Day, you don’t want your job which usually runs every day to run. In other words, there is only one event when the job must be blocked.
 
-You create a Change Calendar entry of DEFAULT_OPEN  that allows deployments and then you create an event for New Year’s Day, which changes the calendar state to CLOSED during the event. You can monitor this change in the default state of the calendar with Amazon EventBridge rules that trigger the configured workflows.
+You create a Change Calendar entry of DEFAULT_OPEN  that allows jobs to run and then you create an event for "Thanksgiving day snack", which changes the calendar state to CLOSED during the event.
 
-In this blog post, you’ll create a public calendar of DEFAULT_OPEN with public holidays as calendar events. Using Amazon EventBridge, you’ll track the CLOSED events, causing a change in the calendar’s state and triggering an automation workflow to suspend the run job rule.
 
 The solution described in this blog post includes the following steps:
 
 1. Create a Systems Manager Change Calendar entry using the DEFAULT_OPEN type.
 2. Create a Systems Manager Automation document to suspend the pipeline release.
-3. Create an AWS Identity and Access Management (IAM) policy and a role to delegate permissions to the Systems Manager Automation document.
-4. Create an IAM role to delegate permissions to EventBridge events, which invokes the Systems Manager Automation document.
-5. Create an EventBridge rule to monitor the calendar’s state and trigger the Automation document when the calendar state changes.
+3. Create an EventBridge rules to excte the job and to monitor the calendar’s state and trigger the Automation document when the calendar state changes.
 
-- 1. **Create a Holiday Calendar**: Define your holiday calendar in Systems Manager. [Guide to create calendars](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-calendar.html).The Calendar is either DEFAULT_OPEN or DEFAULT_CLOSED. For holiday calendar, we will keep the calendar DEFAULT_OPEN. A Calendar has events with a specific start and end times. These events are used to trigger EventBridge - at the start of the event, transitioning from Open to Closed and at the end of the event, transitioning from Closed to Open.
+- 1. **Create a Holiday Calendar**: 
+- **Define your holiday calendar in Systems Manager.**
+[Guide to create calendars](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-calendar.html).The Calendar is either DEFAULT_OPEN or DEFAULT_CLOSED. For holiday calendar, we will keep the calendar DEFAULT_OPEN. A Calendar has events with a specific start and end times. These events are used to trigger EventBridge - at the start of the event, transitioning from Open to Closed and at the end of the event, transitioning from Closed to Open.
+
+Click on the "Details" Tab on the Calendar and open the "Calendar Use" section. The ARN of this calendar is used in the later stages
+
+- **Create Thanksgiving day snack event**:
+Create an event on the calendar by clicking the Create Event Button. Define the start time 30 minutes later than now and ending at 40 minutes later than now. Lets call this "Thanksgiving day snack"
 
 - 2. **Create an automation document**: [Systems Manager Automation](https://docs.aws.amazon.com/systems-manager-automation-runbooks/latest/userguide/automation-ref-sys.html) documents or runbooks help define a series of steps that can be done on your infrastructure and supports a wide range of AWS infrastructure APIs. Automations also support workflows using the new Visual design tool and can be used for manual steps such as an approval before the change event can start.
 
@@ -103,7 +107,7 @@ You will find "Automations" under "Change Management" section.
 | assumeRole     | AWS::IAM::Role::Arn | Arn of the IAM role to use     | |
 
 * Lets name this runboook "Disable Events" 
-* Create a similar runbook to enable events using the code below 
+* Create a similar runbook to enable events using the code below called "Enable Events"
 ```
 {
   "description": "Disables the specified Amazon EventBridge rule",
@@ -140,37 +144,67 @@ You will find "Automations" under "Change Management" section.
 }
 ```
 
-- **Input Holiday Dates**: Add specific holiday dates including specific times you do not want the rules to be executed.
 
-Click on the "Details" Tab on the Calendar and open the "Calendar Use" section. The ARN of this calendar is used in the later stages
 
-### Step 2: Create an EventBridge Rule
+### Step 3: Create an EventBridge Rules
 For this POC lets define a rule that triggers a job that runs every 2 minutes.
 
-- **Define the Rule**: Set up an EventBridge rule for tasks like data backup. [Creating EventBridge Rules](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule.html).
-- **Set Up the Trigger**: Configure triggers based on events 
+- **Define the Rule to run the job**: Navigate to EventBrodge -> Rules an [create a new rule](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule.html) based on a schedule  to run every 2 minutes. For the target, you can create a sample hello world lambda to log a message whenever it is triggerred. We will use this to test out the integration later. Lets call this "Job Rule"
 
-### Step 3: Integrate Systems Manager Calendar with EventBridge
+- **Define the rules to track calendar events**
+* Create a new rule called "Disable Job Based on Calendar Event" based on a "Rule with an event pattern"
+* In the Event Pattern paste the code below replacing the arn with the arn from the HolidayCalendar that was created earlier (note the escape character for the slash)
 
-- **Link the Calendar to the Rule**: Use the calendar's state as a condition in your EventBridge rule.
-- **Configure Rule State**: The rule should respond to the calendar state, enabling or disabling as needed.
+```
+{
+  "source": ["aws.ssm"],
+  "detail-type": ["Calendar State Change"],
+  "resources": ["arn:aws:ssm:us-east-1:454340502151:document\/HolidayCalendar"],
+  "detail": {
+    "state": ["CLOSED"]
+  }
+}
+```
+
+* This rule is triggerred by the switch to an "CLOSED" state from the Holiday calendar
+* For the Target Type select "AWS Service" and select the "Disable Events" runbook that you created earlier
+* For this use case purposes we will hard code the parameter values as constants. 
+* Paste the arn of the eventbus that has the "Job rule" in the EventBusName 
+* Paste the name of the rule "Job rule" in the RuleName field
+* Create a new IAM role to execute that has full access to eventbridge and provide the arn in the assumeRole field
+* Create a new IAM role to execute this rule that has full access to the Systems Manager Calendar.
+* Create a similar rule called "Enable Job Based on Calendar Event" following steps above with the using code below for event pattern. Make sure you select the "Enable Events" runbook or this rule
+```
+{
+  "source": ["aws.ssm"],
+  "detail-type": ["Calendar State Change"],
+  "resources": ["arn:aws:ssm:us-east-XXXXXXXXX:document\/HolidayCalendar"], 
+  "detail": {
+    "state": ["OPEN"]
+  }
+}
+```
+
+Here is how the integration works:
+1. .The Holiday Calendar is "DEFAULT OPEN" state
+2. At the start of the event "Thanksgiving day snack" the calendar sends a state change event to eventbridge to trigger the "Disable Job Based on Calendar Event" rule. This rule runs the runbook that in turn disables the "Job rule"
+4. At the end of the event "Thanksfgiving day snack" the calendar sends a state change event to eventbridge to trigger the "Enable Job Based on Calendar Event" rule. This rule runs the runbook that in turn enables the "Job rule".
 
 ### Step 4: Testing and Validation
 
-- **Test the Setup**: Adjust the calendar to simulate holidays and observe the rule’s behavior.
+- **Test the Setup**: Adjust the calendar event to simulate holidays and observe the rule’s behavior.
 - **Monitor and Adjust**: Monitor with AWS CloudWatch. [About CloudWatch](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/WhatIsCloudWatch.html).
 
 ## Best Practices and Considerations
 
 - **Regularly Update the Holiday Calendar**: Keep the calendar updated with your organization's schedule.
 - **Use Tags for Organization**: Effective for managing multiple calendars and rules.
-- **Security and Compliance**: Ensure alignment with organizational standards.
+- **Security and Compliance**: Ensure alignment with organizational standards. Limit access to all IAM roles to the ones absolutely necessary
 
 ## Conclusion
+While Systems Manager itself requires an agent to run on EC2 instances and other computes, combining AWS Systems Manager Calendar with AWS EventBridge Rules enables complex event scheduling based on calendar events in a serverless way. While this blog gives a console way of setting up this integration, CLI and APIs can be used to automate deployment of the Calendar and the Rules.
 
-Combining AWS Systems Manager Calendar with AWS EventBridge Rules enhances resource efficiency and operational control. Follow these steps for successful integration.
-
-Happy automated holiday scheduling! 🎉📆
+Happy automated serverless complex scheduling! 🎉📆
 
 ---
 
