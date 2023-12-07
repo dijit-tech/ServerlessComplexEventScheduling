@@ -202,7 +202,11 @@ Here is how the integration works:
 - **Security and Compliance**: Ensure alignment with organizational standards. Limit access to all IAM roles to the ones absolutely necessary
 
 ## Conclusion
-While Systems Manager itself requires an agent to run on EC2 instances and other computes, combining AWS Systems Manager Calendar with AWS EventBridge Rules enables complex event scheduling based on calendar events in a serverless way. While this blog gives a console way of setting up this integration, CLI and APIs can be used to automate deployment of the Calendar and the Rules.
+While Systems Manager itself requires an agent to run on EC2 instances and other computes, combining AWS Systems Manager Calendar with AWS EventBridge Rules enables complex event scheduling based on calendar events in a serverless way. 
+
+Change Calendar also allows importing calendars in the .ics format which could be useful for syncing with enterprise calendars if maintained externally
+
+While this blog gives a console way of setting up this integration, CLI and APIs can be used to automate deployment of the Calendar and the Rules.
 
 Happy automated serverless complex scheduling! 🎉📆
 
